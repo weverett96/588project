@@ -22,10 +22,8 @@ for s = 1:length(epsmod)
         X2 = randi(100,N,5);
         eta = normrnd(0,SIGETA,N,1);
         Y = X1*beta1 + X2*beta2 + eta;
-        epsilon = zeros(N,1);
-        for j = 1:N
-            epsilon(j) = normrnd(0,abs(40 + Y(j)*epsmod(s)));
-        end
+        v = exp((Y-mean(Y))/std(Y));
+        epsilon = normrnd(0,v);
         y = Y*gamma1 + X1*gamma2 + epsilon;
 
         % GMM estimation
