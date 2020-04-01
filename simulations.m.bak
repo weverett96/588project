@@ -1,0 +1,66 @@
+clear;
+N = 100;
+TRIALS = 10000;
+SIGETA = 20;
+SIGEPS = 40;
+
+proj = @(A) A*inv(A.'*A)*A.';
+
+%skew = linspace(-0.5,0.5,11);
+skew = 0;
+kurt = linspace(0.5,1.5,11);
+%kurt = 1;
+
+beta1 = ones(5,1);
+beta2 = ones(15,1);
+gamma1 = ones(5,1);
+
+results = zeros(length(skew) * length(kurt) - 5,6);
+for s = 1:length(skew)
+for k = 1:length(kurt)
+    gamma_gmm = zeros(TRIALS,5);
+    gamma_liml = zeros(TRIALS,5);
+    var_gmm = zeros(TRIALS,5);
+    var_liml = zeros(TRIALS,5);
+    for i = 1:TRIALS
+        X1 = randi(100,N,5);
+        X2 = randi(100,N,15);
+        epsilon = normrnd(0,SIGEPS,N,1);
+        epsmod = sinh(kurt(k)*asinh(epsilon) - skew(s));
+        eta = normrnd(0,SIGETA,N,5);
+        Y1 = zeros(N,5);
+        y = zeros(N,1);
+        for j = 1:N
+            for l = 1:5
+                Y1(j,l) = X1(j,l)*beta1(l) + X2(j,l)*beta2(l) + eta(j,l);
+            end
+            y(j) = Y1(j,:)*gamma1 + X1(j,:)*beta1 + epsilon(j);
+        end
+        % GMM estimation
+        Pz = proj([Y1 X1 X2]);
+        Z = [Y1 X1];
+        deltahat = inv(Z.' * Pz * Z) * Z.' * Pz * y;
+        gamma_gmm(i,:) = deltahat(1:5);
+        
+        % LIML estimation
+        M1 = eye(N) - proj(X1);
+        Xstar = M1*X2;
+        Mxstar = eye(N) - proj(Xstar);
+        Mx = M1 * Mxstar;
+        Y = [y Y1];
+        E = eig((Y.' * Mx * Y)^(-1/2) * Y.' * M1 * Y * (Y.' * Mx * Y)^(-1/2));
+        kappahat = min(E);
+        deltahat = inv(Z.'*(eye(N) - kappahat*Mx)*Z)*Z.'*(eye(N) - kappahat*Mx)*y;
+        gamma_liml(i,:) = deltahat(1:5);
+    end
+    
+    gmm_bias = sum(mean(gamma_gmm)-gamma1.');
+    liml_bias = sum(mean(gamma_liml)-gamma1.');
+    gmm_var = var(gamma_gmm);
+    liml_var = var(gamma_liml);
+    
+    results(k*length(skew) + s - length(skew),:) = [kurt(k) skew(s) gmm_bias liml_bias gmm_var liml_var];
+end
+end
+
+results
