@@ -1,5 +1,5 @@
 clear;
-N = 500;
+N = 30;
 TRIALS = 1000;
 SIGETA = 20;
 
@@ -9,9 +9,9 @@ beta1 = randi(10,5,1) - 5;
 beta2 = randi(10,5,1) - 5;
 gamma1 = randi(10) - 5;
 gamma2 = randi(10,5,1) - 5;
-epsmod = linspace(0,10,11);
+epsmod = linspace(0,2,11);
 
-results = zeros(11,5);
+results = zeros(length(epsmod),5);
 for s = 1:length(epsmod)
     gamma_gmm = zeros(TRIALS,1);
     gamma_liml = zeros(TRIALS,1);
@@ -22,7 +22,7 @@ for s = 1:length(epsmod)
         X2 = randi(100,N,5);
         eta = normrnd(0,SIGETA,N,1);
         Y = X1*beta1 + X2*beta2 + eta;
-        v = exp((Y-mean(Y))/std(Y));
+        v = exp((Y - mean(Y))*epsmod(s)/std(Y));
         epsilon = normrnd(0,v);
         y = Y*gamma1 + X1*gamma2 + epsilon;
 
@@ -46,8 +46,8 @@ for s = 1:length(epsmod)
         gamma_liml(i) = deltahat(1);
     end
     
-    gmm_bias = sum(mean(gamma_gmm)-gamma1);
-    liml_bias = sum(mean(gamma_liml)-gamma1);
+    gmm_bias = mean(abs(gamma_gmm-gamma1));
+    liml_bias = mean(abs(gamma_liml-gamma1));
     gmm_var = var(gamma_gmm);
     liml_var = var(gamma_liml);
     
